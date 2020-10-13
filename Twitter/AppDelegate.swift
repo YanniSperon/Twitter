@@ -9,6 +9,12 @@
 import UIKit
 import BDBOAuth1Manager
 
+func provideDefaultValue(key: String, value: Any) {
+    if (UserDefaults.standard.object(forKey: key) != nil) {
+        UserDefaults.standard.set(value, forKey: key)
+    }
+}
+
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
@@ -17,6 +23,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
+        
+        provideDefaultValue(key: "wantsStayLoggedInOn", value: true)
+        
         return true
     }
 
