@@ -13,35 +13,72 @@ class HomeTableViewController: UITableViewController {
     var tweetArray = [NSDictionary]()
     var numberOfTweets: Int!
     
+    let myRefreshControl = UIRefreshControl()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
         loadTweets()
+        
+        myRefreshControl.addTarget(self, action: #selector(loadTweets), for: .valueChanged)
+        tableView.refreshControl = myRefreshControl
     }
     
+    @objc
     func loadTweets() {
-        
+        numberOfTweets = 20
         let myUrl = "https://api.twitter.com/1.1/statuses/home_timeline.json"
         
-        let myParams = [
-            "count": 20
+        let myParams: [String : Any] = [
+            "count": numberOfTweets,
+            "tweet_mode": "extended"
         ]
         
-        TwitterAPICaller.client?.getDictionariesRequest(url: myUrl, parameters: myParams, success: { (tweets: [NSDictionary]) in
+        TwitterAPICaller.client?.getDictionariesRequest(url: myUrl, parameters: myParams , success: { (tweets: [NSDictionary]) in
             self.tweetArray.removeAll()
             for tweet in tweets {
                 self.tweetArray.append(tweet)
             }
             self.tableView.reloadData()
+            self.myRefreshControl.endRefreshing()
         }, failure: { (err: Error) in
             print("Could not retrieve tweets, \"\(err.localizedDescription)\"")
         })
+    }
+    
+    func loadMoreTweets() {
+        let myUrl = "https://api.twitter.com/1.1/statuses/home_timeline.json"
+        
+        numberOfTweets = numberOfTweets + 20
+        
+        let myParams: [String : Any] = [
+            "count": numberOfTweets,
+            "tweet_mode": "extended"
+        ]
+        
+        TwitterAPICaller.client?.getDictionariesRequest(url: myUrl, parameters: myParams , success: { (tweets: [NSDictionary]) in
+            self.tweetArray.removeAll()
+            for tweet in tweets {
+                self.tweetArray.append(tweet)
+            }
+            self.tableView.reloadData()
+            self.myRefreshControl.endRefreshing()
+        }, failure: { (err: Error) in
+            print("Could not retrieve tweets, \"\(err.localizedDescription)\"")
+        })
+        
     }
 
     @IBAction func onLogout(_ sender: Any) {
         TwitterAPICaller.client?.logout()
         UserDefaults.standard.set(false, forKey: "userLoggedIn")
         self.dismiss(animated: true, completion: nil)
+    }
+    
+    override func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        if (indexPath.row + 1 == tweetArray.count) {
+            loadMoreTweets()
+        }
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -51,7 +88,7 @@ class HomeTableViewController: UITableViewController {
         
         cell.userNameLabel.text = user["name"] as? String
         
-        cell.tweetContentLabel.text = tweetArray[indexPath.row]["text"] as? String
+        cell.tweetContentLabel.text = tweetArray[indexPath.row]["full_text"] as? String
         cell.tweetContentLabel.sizeToFit()
         
         let imageUrl = URL(string: (user["profile_image_url_https"] as? String)!)
